@@ -1,0 +1,38 @@
+{
+
+  "banners":[
+   { "img":"imageurl",
+   "link":"",}, ],
+
+  "trending":[ { 
+     "img":"imageurl",
+      "title":"",
+      "islive"
+   },
+],
+ "category":[
+    { 
+      "img":"imageurl",
+      "title":"",
+      "islive"
+   },
+ ],
+  "bottombanner":[
+    { 
+      "img":"imageurl",
+      "title":"",
+      "islive"
+    },
+
+  ],
+
+
+
+
+
+
+
+
+
+
+}
