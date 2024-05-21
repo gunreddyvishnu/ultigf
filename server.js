@@ -1206,3 +1206,10 @@ app.listen(80, "0.0.0.0", (err) => {
 // ./emqx/bin/emqx start
 
 // ssh -i /Users/vishnu/Downloads/login\ \(2\).pem  ubuntu@ec2-13-48-44-7.eu-north-1.compute.amazonaws.com
+
+
+
+
+// "sharp": "^0.32.6"
+
+// npm i sharp@0.32.6
