@@ -237,6 +237,7 @@ app.post(
     },
   },
   async (req, res) => {
+    console.log("game masterrrrr  cganme");
     const jwtToken = req.headers.authorization.split(" ")[1];
 
     var result = await auth.verifyIdToken(jwtToken);
@@ -244,15 +245,21 @@ app.post(
     if (result["error"]) {
       res.status(401).send(result);
     } else {
+
       var resp_gm = gameMaster.entryEligibilityTest(result, req.body["stake"]);
 
       if (resp_gm == true) {
         /// create Game function
 
+    
+
         var gms___ = await gameMaster.createGame(
+
           result.data["uid"],
           req.body["stake"],
-          result.data["mobile"]
+          result.data["mobile"],
+
+          result.data["dp"]
         );
 
         if (gms___ != false) {
@@ -314,7 +321,8 @@ app.post(
                 gamedetails,
                 result["data"]["uid"],
 
-                result["data"]["mobile"]
+                result["data"]["mobile"],
+                result["data"]["dp"],
               );
 
               if (gms___ != false) {
@@ -328,6 +336,7 @@ app.post(
                       "xxxxxx" +
                       result["data"]["mobile"][8] +
                       result["data"]["mobile"][9],
+                      joindp: result["data"]["dp"],
 
                     start_time: gms___["start_time"],
                     status: 1,
@@ -335,6 +344,8 @@ app.post(
                   })
                 );
 
+
+                console.log("HOSTDP : ----" +gamedetails["hostdp"] );
                 res.send({
                   error: false,
 
@@ -342,6 +353,8 @@ app.post(
                   hash: gms___["p2_hash"],
                   gameid: gamedetails["gameid"],
                   start_time: gms___["start_time"],
+                  hostdp:gamedetails["hostdp"] ,
+                  joindp:result["data"]["dp"],
 
                   action_time: gms___["action_time"],
                 });

@@ -212,7 +212,11 @@ function entryEligibilityTest(result, stake) {
   }
 }
 
-async function createGame(uid, stake, playername) {
+async function createGame(uid, stake, playername,hostdp) {
+
+
+  console.log("the host dp is hostdp");
+
 
 
   var res___cg = await walletMaster.deductBalance(uid, stake);
@@ -251,6 +255,8 @@ async function createGame(uid, stake, playername) {
       // }
 
       gameid: gameid,
+
+      hostdp:hostdp,
       status: 0,
       stake: stake,
       winnings: stake * winningRatio,
@@ -267,6 +273,7 @@ async function createGame(uid, stake, playername) {
         winnings: stake * winningRatio,
 
         hash: hashpass,
+        
 
         // String roomcode;
         // String token;
@@ -281,7 +288,7 @@ async function createGame(uid, stake, playername) {
   }
 }
 
-async function joinGame(gamedetails, uid, playername) {
+async function joinGame(gamedetails, uid, playername,joindp) {
   var res___cg = await walletMaster.deductBalance(uid, gamedetails["stake"]);
 
   var starttime = Date.now();
@@ -321,6 +328,7 @@ async function joinGame(gamedetails, uid, playername) {
           action_time: starttime,
 
           start_time: starttime,
+          joindp:joindp,
 
           p2_name:
             playername[0] +
@@ -342,6 +350,7 @@ async function joinGame(gamedetails, uid, playername) {
    
       return gamedetails;
     } else {
+
       var res___cg = await walletMaster.addBalance(uid, gamedetails["stake"]);
       return false;
     }
