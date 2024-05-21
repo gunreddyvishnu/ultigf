@@ -24,8 +24,22 @@ const { createOrder } = require("./payment.js");
 const { deductBalance, deductWithdrawlBalance } = require("./walletManager.js");
 const { generateUuid } = require("./functions.js");
 const { notifications } = require("./notifications.js");
+const { winningRatio, imagelist } = require("./pointsTable.js");
 
-app.register(require("@fastify/multipart"));
+const fs = require("fs");
+// const util = require('util');
+// const { pipeline } = require('stream');
+const { uploadFile } = require("./bucketdetails.js");
+const { cancelgame } = require("./cancelgame.js");
+// const pump = util.promisify(pipeline);
+
+app.register(require("@fastify/multipart"), {
+  throwFileSizeLimit: true,
+  limits: {
+    files: 1,
+    fileSize: 6 * 1024 * 1024,
+  },
+});
 
 // Serve static files from the 'images' folder
 app.register(require("@fastify/static"), {
@@ -293,7 +307,6 @@ app.post(
               gamedetails["stake"]
             );
 
-
             if (resp_gm == true) {
               /// create Game function
 
@@ -310,13 +323,13 @@ app.post(
                   JSON.stringify({
                     action: "opponent-joined",
                     playername:
-                    result["data"]["mobile"][0] +
-                    result["data"]["mobile"][1] +
+                      result["data"]["mobile"][0] +
+                      result["data"]["mobile"][1] +
                       "xxxxxx" +
                       result["data"]["mobile"][8] +
                       result["data"]["mobile"][9],
-          
-                      start_time: gms___["start_time"] ,
+
+                    start_time: gms___["start_time"],
                     status: 1,
                     action_time: gms___["action_time"],
                   })
@@ -328,7 +341,7 @@ app.post(
                   roomcode: gms___["roomcode"],
                   hash: gms___["p2_hash"],
                   gameid: gamedetails["gameid"],
-                  start_time:gms___["start_time"] ,
+                  start_time: gms___["start_time"],
 
                   action_time: gms___["action_time"],
                 });
@@ -420,8 +433,13 @@ app.post(
         type: "object",
         properties: {
           name: { type: "string" },
+          image: {
+            type: 'string',
+            format: 'uri',
+            pattern: '^https://cdn\\.sixgames\\.fun/images/.*$', // Ensure it starts with the specified domain
+          },
         },
-        required: ["name"],
+        required: ["name","image"],
       },
     },
   },
@@ -445,6 +463,9 @@ app.post(
         {
           $set: {
             name: req.body["name"],
+            register:true,
+            dp:req.body["image"]=="https://cdn.sixgames.fun/images/fun.png"?imagelist[Math.floor(Math.random()*imagelist.length)]:req.body["image"],
+
             //  update values
           },
         }
@@ -479,7 +500,7 @@ app.get("/gamedata", async (req, res) => {
       res.send({
         p1_name: gamedata["p1_name"],
         p2_name: gamedata["p2_name"],
-        start_time:gamedata["start_time"]
+        start_time: gamedata["start_time"],
       });
     } else {
       res.status(400).send({
@@ -545,11 +566,7 @@ app.post(
     },
   },
   async (req, res) => {
-
-
-
     console.log("Time up act");
-
 
     var gameid = req.body["gameid"];
 
@@ -571,17 +588,10 @@ app.post(
     );
 
     if (gamedata) {
-
-
       if (gamedata["action_time"] <= fiveseconds) {
-        var actiontime=Date.now();
+        var actiontime = Date.now();
         console.log("change condition true");
         if (gamedata["dice"] == "p1" || gamedata["dice"] == "p2") {
-
-
-      
-         
-
           var updateee = await database.db.collection("games").updateOne(
             {
               // find
@@ -591,7 +601,7 @@ app.post(
             {
               $set: {
                 dice: gamedata["dice"] == "p1" ? "p2" : "p1",
-                action_time:actiontime
+                action_time: actiontime,
 
                 //  update values
               },
@@ -599,34 +609,23 @@ app.post(
           );
 
           if (updateee.acknowledged) {
-
-
-
-
             console.log("Update acknowged");
-
 
             mqttClient.publishData(
               gamedata["roomcode"],
               JSON.stringify({
                 dice: gamedata["dice"] == "p1" ? "p2" : "p1",
                 move: "-",
-                action_time:actiontime,
+                action_time: actiontime,
                 action: "chance",
               })
             );
 
-
-
-
-
-            
-console.log("Update Completed");
+            console.log("Update Completed");
             res.send({
               error: false,
             });
-          }
-          else{
+          } else {
             console.log("Update not acknowged");
           }
         } else if (gamedata["move"] == "p1" || gamedata["move"] == "p2") {
@@ -741,7 +740,7 @@ app.post(
               },
               {
                 $inc: {
-                  winnings: gamedata["stake"] + gamedata["stake"] * 0.8,
+                  winnings: gamedata["winnings"],
                   //  update values
                 },
               }
@@ -786,7 +785,7 @@ app.post(
               },
               {
                 $inc: {
-                  winnings: gamedata["stake"] * 0.8,
+                  winnings: gamedata["winnings"],
                   //  update values
                 },
               }
@@ -853,8 +852,10 @@ app.post(
       var amount = req.body["amount"];
 
       if (result.data["winnings"] >= amount) {
-
-        var txnu = await deductWithdrawlBalance(result.data["uid"], req.body["amount"]);
+        var txnu = await deductWithdrawlBalance(
+          result.data["uid"],
+          req.body["amount"]
+        );
 
         if (txnu) {
           var txnupdate = await database.db
@@ -865,9 +866,9 @@ app.post(
               mobile: result.data["mobile"],
               createdAt: Date.now(),
               orderid: generateUuid(),
-              type:"withdrawl",
-              txnid:generateUuid(),
-              message:"Withdrawl request created",
+              type: "withdrawl",
+              txnid: generateUuid(),
+              message: "Withdrawl request created",
               status: 0,
               withdrawlId: req.body["withdrawlId"],
             });
@@ -938,9 +939,9 @@ app.post(
           amount: req.body["amount"],
           mobile: result.data["mobile"],
           createdAt: Date.now(),
-          type:"deposit",
-          message:"Amount Deposited ",
-          txnid:generateUuid(),
+          type: "deposit",
+          message: "Amount Deposited ",
+          txnid: generateUuid(),
           orderid: orderdetails.data["order_id"],
           paymentid: orderdetails.data["payment_session_id"],
         });
@@ -965,7 +966,6 @@ app.get(
     if (result["error"]) {
       res.status(401).send(result);
     } else {
-
       var txns = await database.db
         .collection("transactions")
         .find(
@@ -1021,13 +1021,175 @@ app.post("/callback", (req, res) => {
   res.send(req.body);
 });
 
-app.listen(3000, "0.0.0.0", (err) => {
+app.post("/api/upload", async function (req, res) {
+  const data = await req.file();
+
+  // console.log(data.file)
+
+  var status = await uploadFile(data);
+  if (status["error"] == true) {
+    res.status(500).send({
+      error: true,
+      message: "please try again",
+    });
+  } else {
+    res.status(200).send({
+      error: false,
+      image: status["img"],
+    });
+  }
+  // Handle the uploaded file
+  // For example, save it to disk:
+  // await pump(data.file, fs.createWriteStream(data.filename));
+  // reply.send('File uploaded successfully!');
+});
+
+app.get("/homescreen", async (req, res) => {
+  res.send({
+    error: false,
+    data: {
+      slider: [
+        {
+          
+            image: "https://cdn.sixgames.fun/posters/Group%2075.png",
+            link: "/"
+          
+        },
+      ],
+
+      games: [
+        {
+          name: "LUDO PARTY",
+          disc: "Betway Sports is a leading online betting site that offers a full range of sports betting markets from around the world. We are certain to cover all the sports ...",
+          logo: "https://cdn.sixgames.fun/posters/ludoicon.png",
+          background:"",
+          tumbnail: "https://cdn.sixgames.fun/posters/ludologo.png",
+          playercount: 300,
+          minimum_stake:10,
+
+          link: "/ludo",
+          live: true,
+          margin: 0.8,
+          tutorial: "https://dribbble.com/shots/18673715-Finance-App-Design",
+        },
+
+        {
+          name: "LUDO PARTY",
+          disc: "Betway Sports is a leading online betting site that offers a full range of sports betting markets from around the world. We are certain to cover all the sports ...",
+          logo: "https://cdn.sixgames.fun/posters/ludoicon.png",
+          tumbnail: "https://cdn.sixgames.fun/posters/ludologo.png",
+          playercount: 300,
+          link: "/ludo",
+          live: true,
+          margin: 0.8,
+          tutorial: "https://dribbble.com/shots/18673715-Finance-App-Design",
+        },
+      ],
+
+      refferbanner: "http://super360.oss-ap-south-1.aliyuncs.com/banner.png",
+
+      footer: "https://cdn.sixgames.fun/posters/playulti.png",
+    },
+  });
+});
+
+app.get("/updategame", async (req, res) => {
+  await database.db.collection("admindata").updateOne(
+    {
+      assetid: "games",
+    },
+    {
+      $set: {
+        data: [
+          {
+            name: "LUDO PARTY",
+            disc: "Betway Sports is a leading online betting site that offers a full range of sports betting markets from around the world. We are certain to cover all the sports ...",
+            logo: "https://cdn.sixgames.fun/posters/ludoicon.png",
+            tumbnail: "https://cdn.sixgames.fun/posters/ludologo.png",
+            playercount: 300,
+            link: "ludo",
+            live: true,
+            margin: winningRatio,
+            tutorial: "https://dribbble.com/shots/18673715-Finance-App-Design",
+          },
+        ],
+
+        //  update values
+      },
+    }
+  );
+});
+
+
+
+
+
+
+
+app.post('/cancelgame', {
+schema: {
+ body: {
+type: 'object',
+properties: {
+  'gameid': { type: 'string' },
+  'hash': { type: 'string' },
+  'uid': { type: 'string' },
+
+},
+ required: ['gameid','hash','uid'], 
+    }, 
+  },
+   },async (req, res) => { 
+
+
+
+  var cancelstatus=await cancelgame({
+    gameid:req.body["gameid"],
+    hash:req.body["hash"],
+    uid:req.body["uid"]
+  })
+
+
+
+  if(cancelstatus){
+    res.status(200).send({
+      "error":false,
+      "message":"Your Game has Cancelled"
+
+    })
+  }
+  else{
+    res.status(200).send({
+      "error":true,
+      "message":"Your Game Already Started"
+
+    })
+  }
+
+
+
+
+
+
+   }); 
+
+
+
+
+
+
+
+
+
+app.listen(80, "0.0.0.0", (err) => {
   if (err) {
     console.error(err);
     process.exit(1);
   }
 
   mqttClient.client;
-  console.log("Server running on port 3000");
+  console.log("Server running on port 80");
 });
 // ./emqx/bin/emqx start
+
+// ssh -i /Users/vishnu/Downloads/login\ \(2\).pem  ubuntu@ec2-13-48-44-7.eu-north-1.compute.amazonaws.com

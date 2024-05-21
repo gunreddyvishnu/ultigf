@@ -5,7 +5,7 @@ const smskey =
 const welcome_deposit = 0;
 
 const welcome_promotional = 0;
-
+const promotional=0;
 //// game values
 
 const min_game_stake = 10;
@@ -20,5 +20,6 @@ module.exports = {
   welcome_deposit,
   welcome_promotional,
   min_game_stake,
+  promotional,
   promotional_offer_apply,
 };

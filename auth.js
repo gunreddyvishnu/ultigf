@@ -169,6 +169,7 @@ async function verifyOtp(phoneNumber, token, otp, device) {
           winnings: 0,
           promotional: values.promotional,
           kyc_status: 0,
+          register:false,
           email_verified: false,
         });
 
@@ -216,6 +217,7 @@ async function verifyIdToken(sessionToken) {
     {
       projection: {
         _id: 0,
+        
       },
     }
   );

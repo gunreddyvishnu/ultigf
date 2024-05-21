@@ -5,6 +5,7 @@ const values = require("./values.js");
 const app = require("fastify")({ logger: true });
 const walletMaster = require("./walletManager.js");
 const functionList = require("./functions.js");
+const { winningRatio } = require("./pointsTable.js");
 var player1map = [
   2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
   23, 24, 25, 26, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
@@ -212,6 +213,8 @@ function entryEligibilityTest(result, stake) {
 }
 
 async function createGame(uid, stake, playername) {
+
+
   var res___cg = await walletMaster.deductBalance(uid, stake);
 
   if (res___cg) {
@@ -250,7 +253,7 @@ async function createGame(uid, stake, playername) {
       gameid: gameid,
       status: 0,
       stake: stake,
-      winnings: stake * 2,
+      winnings: stake * winningRatio,
       roomcode: roomcode,
     });
 
@@ -261,7 +264,7 @@ async function createGame(uid, stake, playername) {
         gameid: gameid,
 
         amount: stake,
-        winnings: stake * 2,
+        winnings: stake * winningRatio,
 
         hash: hashpass,
 
@@ -307,6 +310,7 @@ async function joinGame(gamedetails, uid, playername) {
     var gamestatus = await database.db.collection("games").updateOne(
       {
         _id: gamedetails["_id"],
+        status:0,
       },
       {
         $set: {
@@ -338,6 +342,7 @@ async function joinGame(gamedetails, uid, playername) {
    
       return gamedetails;
     } else {
+      var res___cg = await walletMaster.addBalance(uid, gamedetails["stake"]);
       return false;
     }
   }
